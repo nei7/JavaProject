@@ -22,7 +22,7 @@ public class RegexParser {
     private RegexNode parseUnion() {
         RegexNode left = parseConcat();
 
-        while (match(RegexTokenType.PIPE)) {
+        while (match(RegexTokenType.UNION)) {
             RegexNode right = parseConcat();
             left = new Union(left, right);
         }

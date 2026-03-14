@@ -43,9 +43,8 @@ public class NfaVisualizer {
                     .width(800)
                     .render(Format.SVG)
                     .toFile(new File(outputFilename));
-            System.out.println("Zapisano graf NFA do pliku: " + outputFilename);
         } catch (IOException ex) {
-            System.err.println("Błąd podczas zapisywania grafu: " + ex.getMessage());
+            System.err.println("Error while saving the graph: " + ex.getMessage());
         }
     }
 
