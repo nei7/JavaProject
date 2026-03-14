@@ -42,14 +42,6 @@ public class LanguageDeriver {
         }
 
         printEquations();
-
-        // System.out.println("\n--- 4. Ostateczne czyszczenie rekurencji symbolu
-        // startowego ---");
-        // for (NonTerminal var : variables) {
-        // applyArdensLemma(var);
-        // }
-
-        // printEquations();
     }
 
     private void groupProductions() {

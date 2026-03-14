@@ -1,6 +1,6 @@
 package com.github.nei7.lexer;
 
-public enum TokenType {
+public enum GrammarTokenType {
     NON_TERMINAL, // Uppercase letters
     TERMINAL, // Lowercase letters
     ARROW, // Arrow ->
