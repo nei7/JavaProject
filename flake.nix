@@ -18,6 +18,7 @@
 
           jdk25_headless
           maven
+          graphviz
         ];
 
         shellHook = ''

@@ -1,56 +1,69 @@
 package com.github.nei7.solver;
 
 import com.github.nei7.model.*;
-import java.util.ArrayList;
-import java.util.List;
+import com.github.nei7.nfa.NFA;
 
-import com.github.nei7.model.RegexNode.*;
+import java.util.*;
 
 public class RegexToGrammar {
-    private char nameGenerator = 'A'; // Zaczynamy alfabet od 'A'
-    private final List<Production> productions = new ArrayList<>();
 
-    public Grammar convert(RegexNode root) {
-        NonTerminal startSymbol = new NonTerminal("S");
-        generateNode(root, startSymbol);
-        return new Grammar(startSymbol, productions);
+    public Grammar convert(NFA nfa) {
+        List<Production> productions = new ArrayList<>();
+        Set<NFA.State> reachable = new HashSet<>();
+        Queue<NFA.State> queue = new LinkedList<>();
+
+        reachable.add(nfa.start());
+        queue.add(nfa.start());
+
+        while (!queue.isEmpty()) {
+            NFA.State curr = queue.poll();
+
+            Set<NFA.State> closure = getEpsilonClosure(curr, nfa.epsilons());
+            Set<List<Symbol>> uniqueRhs = new LinkedHashSet<>();
+
+            boolean isAccepting = closure.stream().anyMatch(s -> nfa.acceptStates().contains(s));
+            if (isAccepting) {
+                uniqueRhs.add(List.of());
+            }
+
+            for (NFA.State cState : closure) {
+                for (NFA.Trans t : nfa.transitions()) {
+                    if (t.from().equals(cState)) {
+                        NonTerminal toNt = new NonTerminal(t.to().name());
+                        uniqueRhs.add(List.of(new Terminal(t.symbol()), toNt));
+
+                        if (!reachable.contains(t.to())) {
+                            reachable.add(t.to());
+                            queue.add(t.to());
+                        }
+                    }
+                }
+            }
+
+            NonTerminal currNt = new NonTerminal(curr.name());
+            for (List<Symbol> rhs : uniqueRhs) {
+                productions.add(new Production(currNt, rhs));
+            }
+        }
+
+        return new Grammar(new NonTerminal(nfa.start().name()), productions);
     }
 
-    private NonTerminal generateNode(RegexNode node, NonTerminal targetVariable) {
-        NonTerminal current = targetVariable;
+    private Set<NFA.State> getEpsilonClosure(NFA.State start, List<NFA.Eps> epsilons) {
+        Set<NFA.State> closure = new HashSet<>();
+        Queue<NFA.State> queue = new LinkedList<>();
+        closure.add(start);
+        queue.add(start);
 
-        if (current == null) {
-            if (nameGenerator == 'S')
-                nameGenerator++;
-            if (nameGenerator > 'Z')
-                throw new RuntimeException("Wyrażenie jest zbyt skomplikowane (zabrakło liter w alfabecie!)");
-
-            current = new NonTerminal(String.valueOf(nameGenerator++));
+        while (!queue.isEmpty()) {
+            NFA.State curr = queue.poll();
+            for (NFA.Eps e : epsilons) {
+                if (e.from().equals(curr) && !closure.contains(e.to())) {
+                    closure.add(e.to());
+                    queue.add(e.to());
+                }
+            }
         }
-
-        if (node instanceof Literal lit) {
-            productions.add(new Production(current, List.of(new Terminal(lit.value()))));
-        } else if (node instanceof Union union) {
-
-            NonTerminal leftNt = generateNode(union.left(), null);
-            NonTerminal rightNt = generateNode(union.right(), null);
-            productions.add(new Production(current, List.of(leftNt)));
-            productions.add(new Production(current, List.of(rightNt)));
-
-        } else if (node instanceof Concat concat) {
-
-            NonTerminal leftNt = generateNode(concat.left(), null);
-            NonTerminal rightNt = generateNode(concat.right(), null);
-            productions.add(new Production(current, List.of(leftNt, rightNt)));
-
-        } else if (node instanceof Star star) {
-
-            NonTerminal innerNt = generateNode(star.inner(), null);
-            productions.add(new Production(current, List.of(innerNt, current)));
-            productions.add(new Production(current, List.of()));
-
-        }
-
-        return current;
+        return closure;
     }
 }

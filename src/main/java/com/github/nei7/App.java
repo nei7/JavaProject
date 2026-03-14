@@ -9,10 +9,17 @@ import com.github.nei7.model.NonTerminal;
 import com.github.nei7.model.Production;
 import com.github.nei7.model.RegexNode;
 import com.github.nei7.model.Symbol;
+import com.github.nei7.nfa.GrammarToNFA;
+import com.github.nei7.nfa.NFA;
+import com.github.nei7.nfa.NfaVisualizer;
+import com.github.nei7.nfa.RegexToNFA;
 import com.github.nei7.parser.GrammarParser;
 import com.github.nei7.parser.RegexParser;
 import com.github.nei7.solver.LanguageDeriver;
 import com.github.nei7.solver.RegexToGrammar;
+
+import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.engine.GraphvizCmdLineEngine;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,8 +32,10 @@ import java.util.stream.Collectors;
 
 public class App {
     public static void main(String[] args) {
+        Graphviz.useEngine(new GraphvizCmdLineEngine());
+
         Path filePath = Path.of("grammar.txt");
-        String regexText = "(a+b)*c";
+        String regexText = "(x + z)*z* + w*";
 
         try {
             String grammarText = Files.readString(filePath);
@@ -46,22 +55,24 @@ public class App {
             LanguageDeriver deriver = new com.github.nei7.solver.LanguageDeriver(productions);
             deriver.derive();
 
+            System.out.println("\n\n0. Regex: " + regexText);
             RegexLexer regexLexer = new RegexLexer(regexText);
             List<RegexToken> regexTokens = regexLexer.tokenize();
-            System.out.println("\n\n2. Zbudowano tokenów: " + regexTokens.size());
 
-            // Etap 2: Analiza Składniowa (Budowanie Drzewa AST)
+            System.out.println("1. Tokens build: " + regexTokens.size());
+
             RegexParser regexParser = new RegexParser(regexTokens);
             RegexNode ast = regexParser.parse();
-            System.out.println("3. Skonstruowano Drzewo Składniowe AST pomyślnie.");
+            System.out.println("2. AST built successfully.");
 
-            // Etap 3: Konwersja Drzewa do Gramatyki
             RegexToGrammar converter = new RegexToGrammar();
-            Grammar generatedGrammar = converter.convert(ast);
+            RegexToNFA nfaBuilder = new RegexToNFA();
+            NFA nfa = nfaBuilder.convert(ast);
+            Grammar generatedGrammar = converter.convert(nfa);
 
-            System.out.println("\n🎉 4. Wygenerowana Gramatyka:");
-            System.out.println("Symbol startowy: " + generatedGrammar.startSymbol());
-            System.out.println("Reguły:");
+            System.out.println("\n3. Generated Grammar:");
+            System.out.println("Initial symbol: " + generatedGrammar.startSymbol());
+            System.out.println("Production rules:");
             Map<NonTerminal, List<List<Symbol>>> grouped = new LinkedHashMap<>();
             for (Production p : generatedGrammar.productions()) {
                 grouped.computeIfAbsent(p.left(), k -> new ArrayList<>()).add(p.right());
@@ -78,6 +89,11 @@ public class App {
 
                 System.out.println("   " + entry.getKey() + " -> " + rightSide);
             }
+
+            GrammarToNFA grammarToNFA = new GrammarToNFA();
+            NFA grammarNFA = grammarToNFA.convert(generatedGrammar);
+
+            NfaVisualizer.draw(grammarNFA, "nfa");
 
         } catch (IOException e) {
             System.err.println(e.getMessage());
