@@ -3,6 +3,7 @@ package com.github.nei7.fsm;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// Converts an NFA to an equivalent DFA using the subset construction algorithm.
 public class NFAToDFA {
     private int nameCounter = 0;
 
