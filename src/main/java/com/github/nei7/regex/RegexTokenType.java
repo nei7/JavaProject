@@ -1,9 +1,9 @@
-package com.github.nei7.lexer;
+package com.github.nei7.regex;
 
 public enum RegexTokenType {
     CHAR, // Character literal, np. 'a', 'b', '0', '1'
     STAR, // Kleene star '*'
-    PIPE, // Union '+'
+    UNION, // Union '+'
     LPAREN, // Left parenthesis '('
     RPAREN, // Right parenthesis ')'
     EOF // End of file

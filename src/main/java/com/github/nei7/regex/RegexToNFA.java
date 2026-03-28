@@ -1,9 +1,13 @@
-package com.github.nei7.nfa;
+package com.github.nei7.regex;
 
-import com.github.nei7.model.RegexNode;
-import com.github.nei7.model.RegexNode.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.github.nei7.fsm.NFA;
+import com.github.nei7.fsm.NFA.Eps;
+import com.github.nei7.fsm.NFA.State;
+import com.github.nei7.fsm.NFA.Trans;
+import com.github.nei7.regex.RegexNode.*;
 
 // McNaughton–Yamada–Thompson algorithm
 // https://en.wikipedia.org/wiki/Thompson%27s_construction

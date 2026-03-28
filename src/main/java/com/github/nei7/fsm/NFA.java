@@ -1,4 +1,4 @@
-package com.github.nei7.nfa;
+package com.github.nei7.fsm;
 
 import java.util.List;
 

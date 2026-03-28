@@ -1,22 +1,31 @@
-package com.github.nei7.parser;
+package com.github.nei7.regex;
 
-import com.github.nei7.lexer.RegexToken;
-import com.github.nei7.lexer.RegexTokenType;
-import com.github.nei7.model.RegexNode;
-import com.github.nei7.model.RegexNode.*;
+import com.github.nei7.errors.RegexSyntaxException;
+import com.github.nei7.regex.RegexNode.*;
 
 import java.util.List;
 
 public class RegexParser {
     private final List<RegexToken> tokens;
+    private final String input;
     private int current = 0;
 
-    public RegexParser(List<RegexToken> tokens) {
+    public RegexParser(List<RegexToken> tokens, String input) {
         this.tokens = tokens;
+        this.input = input;
     }
 
     public RegexNode parse() {
-        return parseUnion();
+        RegexNode node = parseUnion();
+
+        if (!isAtEnd()) {
+            RegexToken token = peek();
+            throw new RegexSyntaxException(
+                    "Unexpected token '" + token.value() + "'",
+                    input, token.line(), token.column());
+        }
+
+        return node;
     }
 
     private RegexNode parseUnion() {
@@ -51,7 +60,6 @@ public class RegexParser {
         return node;
     }
 
-    // Highest priority Letter or parenthesized expression
     private RegexNode parseBase() {
         if (match(RegexTokenType.CHAR)) {
             return new Literal(previous().value());
@@ -59,11 +67,14 @@ public class RegexParser {
 
         if (match(RegexTokenType.LPAREN)) {
             RegexNode expr = parseUnion();
-            consume(RegexTokenType.RPAREN, "Błąd składni: Oczekiwano zamykającego nawiasu ')'");
+            consume(RegexTokenType.RPAREN, "A closing parenthesis was expected ')'");
             return expr;
         }
 
-        throw new RuntimeException("Błąd składni Regex: Oczekiwano znaku lub '(', ale znaleziono: " + peek().value());
+        RegexToken token = peek();
+        throw new RegexSyntaxException(
+                "The character or '(' was expected, but found: '" + token.value() + "'",
+                input, token.line(), token.column());
     }
 
     private boolean match(RegexTokenType type) {
@@ -101,6 +112,7 @@ public class RegexParser {
     private RegexToken consume(RegexTokenType type, String message) {
         if (check(type))
             return advance();
-        throw new RuntimeException(message);
+        RegexToken token = peek();
+        throw new RegexSyntaxException(message, input, token.line(), token.column());
     }
 }

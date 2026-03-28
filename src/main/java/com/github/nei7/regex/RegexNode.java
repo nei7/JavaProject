@@ -1,4 +1,4 @@
-package com.github.nei7.model;
+package com.github.nei7.regex;
 
 // AST Nodes for Regular Expressions
 public sealed interface RegexNode {

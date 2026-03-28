@@ -1,4 +1,4 @@
-package com.github.nei7.model;
+package com.github.nei7.grammar;
 
 // Represents lowercase letters
 public record Terminal(String value) implements Symbol {

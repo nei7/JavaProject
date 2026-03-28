@@ -1,4 +1,4 @@
-package com.github.nei7.nfa;
+package com.github.nei7.fsm;
 
 import guru.nidi.graphviz.attribute.Label;
 import guru.nidi.graphviz.attribute.Shape;

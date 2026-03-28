@@ -1,4 +1,4 @@
-package com.github.nei7.model;
+package com.github.nei7.grammar;
 
 // Represents uppercase letters
 public record NonTerminal(String name) implements Symbol {
