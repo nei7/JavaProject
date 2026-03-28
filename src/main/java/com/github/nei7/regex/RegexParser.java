@@ -1,10 +1,10 @@
 package com.github.nei7.regex;
 
-import com.github.nei7.errors.RegexSyntaxException;
 import com.github.nei7.regex.RegexNode.*;
 
 import java.util.List;
 
+// Recursive Descent Parser
 public class RegexParser {
     private final List<RegexToken> tokens;
     private final String input;
@@ -112,6 +112,7 @@ public class RegexParser {
     private RegexToken consume(RegexTokenType type, String message) {
         if (check(type))
             return advance();
+
         RegexToken token = peek();
         throw new RegexSyntaxException(message, input, token.line(), token.column());
     }

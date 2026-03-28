@@ -1,11 +1,11 @@
-package com.github.nei7.errors;
+package com.github.nei7.regex;
 
-public class GrammarSyntaxException extends RuntimeException {
+public class RegexSyntaxException extends RuntimeException {
 
     private final int line;
     private final int column;
 
-    public GrammarSyntaxException(String message, String input, int line, int column) {
+    public RegexSyntaxException(String message, String input, int line, int column) {
         super(formatMessage(message, input, line, column));
         this.line = line;
         this.column = column;
@@ -26,8 +26,8 @@ public class GrammarSyntaxException extends RuntimeException {
         String pointer = " ".repeat(column - 1) + "^";
 
         return String.format("""
-                error: %s
-                  --> wiersz %d:%d
+                Syntax Error: %s
+                  --> line %d:%d
                    |
                 %2d | %s
                    | %s

@@ -1,4 +1,3 @@
-
 package com.github.nei7.grammar;
 
 import java.util.ArrayList;
@@ -22,7 +21,7 @@ public class DFAToGrammar {
                 }
             }
 
-            // A → ε (stan akceptujący)
+            // A → ε
             if (dfa.acceptStates().contains(state)) {
                 productions.add(new Production(nt, List.of()));
             }

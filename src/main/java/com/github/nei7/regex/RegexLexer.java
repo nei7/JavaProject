@@ -1,7 +1,5 @@
 package com.github.nei7.regex;
 
-import com.github.nei7.errors.RegexSyntaxException;
-
 import java.util.ArrayList;
 import java.util.List;
 

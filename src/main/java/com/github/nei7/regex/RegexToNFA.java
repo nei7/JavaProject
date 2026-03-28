@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.github.nei7.fsm.NFA;
-import com.github.nei7.fsm.NFA.Eps;
-import com.github.nei7.fsm.NFA.State;
-import com.github.nei7.fsm.NFA.Trans;
 import com.github.nei7.regex.RegexNode.*;
 
 // McNaughton–Yamada–Thompson algorithm
