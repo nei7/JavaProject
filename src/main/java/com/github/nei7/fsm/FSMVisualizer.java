@@ -43,32 +43,7 @@ public class FSMVisualizer {
         saveGraph(g, outputFilename);
     }
 
-    public static void draw(DFA dfa, String outputFilename) {
-        Graph g = graph("DFA").directed().graphAttr().with(Rank.dir(LEFT_TO_RIGHT));
-
-        Node startPoint = node("start_point").with(Shape.POINT, Label.of(""));
-        Node startNode = createDfaNode(dfa.start(), dfa.acceptStates());
-        g = g.with(startPoint.link(to(startNode)));
-
-        for (DFA.Trans t : dfa.transitions()) {
-            Node fromNode = createDfaNode(t.from(), dfa.acceptStates());
-            Node toNode = createDfaNode(t.to(), dfa.acceptStates());
-            g = g.with(fromNode.link(to(toNode).with(Label.of(t.symbol()))));
-        }
-
-        for (DFA.State state : dfa.acceptStates()) {
-            g = g.with(createDfaNode(state, dfa.acceptStates()));
-        }
-
-        saveGraph(g, outputFilename);
-    }
-
     private static Node createNfaNode(NFA.State state, List<NFA.State> acceptStates) {
-        Node n = node(state.name());
-        return acceptStates.contains(state) ? n.with(Shape.DOUBLE_CIRCLE) : n.with(Shape.CIRCLE);
-    }
-
-    private static Node createDfaNode(DFA.State state, List<DFA.State> acceptStates) {
         Node n = node(state.name());
         return acceptStates.contains(state) ? n.with(Shape.DOUBLE_CIRCLE) : n.with(Shape.CIRCLE);
     }

@@ -1,12 +1,9 @@
 package com.github.nei7.cli;
 
-import com.github.nei7.fsm.DFA;
 import com.github.nei7.fsm.FSMVisualizer;
 import com.github.nei7.fsm.NFA;
-import com.github.nei7.fsm.NFAToDFA;
-import com.github.nei7.grammar.DFAToGrammar;
 import com.github.nei7.grammar.Grammar;
-
+import com.github.nei7.grammar.NFAToGrammar;
 import com.github.nei7.regex.RegexLexer;
 import com.github.nei7.regex.RegexToken;
 import com.github.nei7.regex.RegexNode;
@@ -45,23 +42,18 @@ public class RegexCommand implements Runnable {
             RegexNode ast = regexParser.parse();
 
             RegexToNFA nfaBuilder = new RegexToNFA();
-            NFA nfa = nfaBuilder.convert(ast);
+            NFA nfa = nfaBuilder.compile(ast);
 
-            NFAToDFA nfaToDfaConverter = new NFAToDFA();
-            DFA dfa = nfaToDfaConverter.convert(nfa);
-
-            DFAToGrammar converter = new DFAToGrammar();
-            Grammar generatedGrammar = converter.convert(dfa);
+            NFAToGrammar converter = new NFAToGrammar();
+            Grammar generatedGrammar = converter.convert(nfa);
 
             FSMVisualizer.draw(nfa, outputPath + "_nfa.svg");
-
-            FSMVisualizer.draw(dfa, outputPath + "_dfa.svg");
 
             System.out.println(generatedGrammar);
 
             String terminal = System.getenv("TERM");
             if (terminal.equals("xterm-kitty"))
-                new ProcessBuilder("kitten", "icat", outputPath + "_dfa.svg")
+                new ProcessBuilder("kitten", "icat", outputPath + "_nfa.svg")
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .start();
 

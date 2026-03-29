@@ -1,73 +1,126 @@
 package com.github.nei7.regex;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.github.nei7.fsm.NFA;
-import com.github.nei7.regex.RegexNode.*;
 
-// McNaughton–Yamada–Thompson algorithm
-// https://en.wikipedia.org/wiki/Thompson%27s_construction
-// https://medium.com/swlh/visualizing-thompsons-construction-algorithm-for-nfas-step-by-step-f92ef378581b
 public class RegexToNFA {
-    private char nameGenerator = 'A';
-    private int fallbackCounter = 1;
-
-    private final List<NFA.Trans> transitions = new ArrayList<>();
-    private final List<NFA.Eps> epsilons = new ArrayList<>();
-
-    private record NFAFrag(NFA.State start, NFA.State end) {
-    }
-
-    public NFA convert(RegexNode root) {
-        nameGenerator = 'A';
-        fallbackCounter = 1;
-        transitions.clear();
-        epsilons.clear();
-
-        NFA.State start = new NFA.State("S");
-        NFAFrag frag = build(root, start);
-
-        return new NFA(frag.start(), List.of(frag.end()), new ArrayList<>(transitions), new ArrayList<>(epsilons));
-    }
-
-    private NFA.State newState() {
-        if (nameGenerator == 'S')
-            nameGenerator++;
-        if (nameGenerator <= 'Z') {
-            return new NFA.State(String.valueOf(nameGenerator++));
-        } else {
-            return new NFA.State("N" + (fallbackCounter++));
+    private record Position(int id, String value) {
+        @Override
+        public String toString() {
+            return value + "_" + id;
         }
     }
 
-    private NFAFrag build(RegexNode node, NFA.State targetStart) {
-        NFA.State start = (targetStart != null) ? targetStart : newState();
-        NFA.State end = newState();
+    private record NodeInfo(
+            boolean nullable,
+            Set<Position> first,
+            Set<Position> last) {
+    }
 
-        if (node instanceof Literal lit) {
-            transitions.add(new NFA.Trans(start, String.valueOf(lit.value()), end));
-        } else if (node instanceof Concat cat) {
-            NFAFrag left = build(cat.left(), start);
-            NFAFrag right = build(cat.right(), null);
-            epsilons.add(new NFA.Eps(left.end(), right.start()));
-            end = right.end();
-        } else if (node instanceof Union un) {
-            NFAFrag left = build(un.left(), null);
-            NFAFrag right = build(un.right(), null);
-            epsilons.add(new NFA.Eps(start, left.start()));
-            epsilons.add(new NFA.Eps(start, right.start()));
-            epsilons.add(new NFA.Eps(left.end(), end));
-            epsilons.add(new NFA.Eps(right.end(), end));
-        } else if (node instanceof Star star) {
+    private int positionCounter = 1;
+    private final Map<Position, Set<Position>> followSets = new HashMap<>();
 
-            NFAFrag inner = build(star.inner(), null);
-            epsilons.add(new NFA.Eps(start, inner.start()));
-            epsilons.add(new NFA.Eps(start, end));
-            epsilons.add(new NFA.Eps(inner.end(), inner.start()));
-            epsilons.add(new NFA.Eps(inner.end(), end));
+    public NFA compile(RegexNode root) {
+        positionCounter = 1;
+        followSets.clear();
+
+        NodeInfo rootInfo = computeInfo(root);
+
+        return buildNFA(rootInfo);
+    }
+
+    private NodeInfo computeInfo(RegexNode node) {
+        return switch (node) {
+            case RegexNode.Literal l -> {
+                Position pos = new Position(positionCounter++, l.value());
+                followSets.put(pos, new HashSet<>());
+                yield new NodeInfo(false, Set.of(pos), Set.of(pos));
+            }
+
+            case RegexNode.Union u -> {
+                NodeInfo left = computeInfo(u.left());
+                NodeInfo right = computeInfo(u.right());
+
+                Set<Position> first = new HashSet<>(left.first());
+                first.addAll(right.first());
+
+                Set<Position> last = new HashSet<>(left.last());
+                last.addAll(right.last());
+
+                yield new NodeInfo(left.nullable() || right.nullable(), first, last);
+            }
+
+            case RegexNode.Concat c -> {
+                NodeInfo left = computeInfo(c.left());
+                NodeInfo right = computeInfo(c.right());
+
+                Set<Position> first = new HashSet<>(left.first());
+                if (left.nullable())
+                    first.addAll(right.first());
+
+                Set<Position> last = new HashSet<>(right.last());
+                if (right.nullable())
+                    last.addAll(left.last());
+
+                for (Position p : left.last()) {
+                    followSets.get(p).addAll(right.first());
+                }
+
+                yield new NodeInfo(left.nullable() && right.nullable(), first, last);
+            }
+
+            case RegexNode.Star s -> {
+                NodeInfo inner = computeInfo(s.inner());
+
+                for (Position p : inner.last()) {
+                    followSets.get(p).addAll(inner.first());
+                }
+
+                yield new NodeInfo(true, inner.first(), inner.last());
+            }
+        };
+    }
+
+    private NFA buildNFA(NodeInfo rootInfo) {
+        NFA.State startState = new NFA.State("S");
+        List<NFA.State> acceptStates = new ArrayList<>();
+        List<NFA.Trans> transitions = new ArrayList<>();
+        List<NFA.Eps> epsilons = new ArrayList<>();
+        Map<Position, NFA.State> positionToState = new HashMap<>();
+
+        if (rootInfo.nullable()) {
+            acceptStates.add(startState);
         }
 
-        return new NFAFrag(start, end);
+        for (Position p : rootInfo.first()) {
+            NFA.State toState = getOrCreateState(p, positionToState);
+            transitions.add(new NFA.Trans(startState, p.value(), toState));
+        }
+
+        for (Map.Entry<Position, Set<Position>> entry : followSets.entrySet()) {
+            Position currentPos = entry.getKey();
+            NFA.State currentState = getOrCreateState(currentPos, positionToState);
+
+            if (rootInfo.last().contains(currentPos)) {
+                acceptStates.add(currentState);
+            }
+
+            for (Position nextPos : entry.getValue()) {
+                NFA.State nextState = getOrCreateState(nextPos, positionToState);
+                transitions.add(new NFA.Trans(currentState, nextPos.value(), nextState));
+            }
+        }
+
+        return new NFA(startState, acceptStates, transitions, epsilons);
+    }
+
+    private NFA.State getOrCreateState(Position p, Map<Position, NFA.State> map) {
+        return map.computeIfAbsent(p, key -> new NFA.State("q" + key.id()));
     }
 }
