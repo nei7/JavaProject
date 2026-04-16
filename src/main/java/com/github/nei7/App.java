@@ -1,11 +1,14 @@
 package com.github.nei7;
 
 import com.github.nei7.cli.RegexCommand;
+import com.github.nei7.cli.RegexASTCommand;
+
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 @Command(name = "java-project", mixinStandardHelpOptions = true, version = "1.0", description = "A toolkit for formal language theory and compilers.", subcommands = {
-        RegexCommand.class
+        RegexCommand.class,
+        RegexASTCommand.class
 })
 public class App implements Runnable {
 

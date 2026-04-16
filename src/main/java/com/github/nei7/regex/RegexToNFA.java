@@ -1,13 +1,12 @@
 package com.github.nei7.regex;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.github.nei7.fsm.NFA;
+import com.github.nei7.fsm.NFABuilder;
 
 public class RegexToNFA {
     private record Position(int id, String value) {
@@ -38,14 +37,14 @@ public class RegexToNFA {
     private NodeInfo computeInfo(RegexNode node) {
         return switch (node) {
             case RegexNode.Literal l -> {
-                Position pos = new Position(positionCounter++, l.value());
+                Position pos = new Position(positionCounter++, l.getValue());
                 followSets.put(pos, new HashSet<>());
                 yield new NodeInfo(false, Set.of(pos), Set.of(pos));
             }
 
             case RegexNode.Union u -> {
-                NodeInfo left = computeInfo(u.left());
-                NodeInfo right = computeInfo(u.right());
+                NodeInfo left = computeInfo(u.getLeft());
+                NodeInfo right = computeInfo(u.getRight());
 
                 Set<Position> first = new HashSet<>(left.first());
                 first.addAll(right.first());
@@ -57,8 +56,8 @@ public class RegexToNFA {
             }
 
             case RegexNode.Concat c -> {
-                NodeInfo left = computeInfo(c.left());
-                NodeInfo right = computeInfo(c.right());
+                NodeInfo left = computeInfo(c.getLeft());
+                NodeInfo right = computeInfo(c.getRight());
 
                 Set<Position> first = new HashSet<>(left.first());
                 if (left.nullable())
@@ -76,7 +75,7 @@ public class RegexToNFA {
             }
 
             case RegexNode.Star s -> {
-                NodeInfo inner = computeInfo(s.inner());
+                NodeInfo inner = computeInfo(s.getInner());
 
                 for (Position p : inner.last()) {
                     followSets.get(p).addAll(inner.first());
@@ -84,23 +83,26 @@ public class RegexToNFA {
 
                 yield new NodeInfo(true, inner.first(), inner.last());
             }
+            // Compiler safeguard (required for classic inheritance,
+            // if RegexNode is not sealed)
+            default -> throw new IllegalArgumentException("Unknown node type");
         };
     }
 
     private NFA buildNFA(NodeInfo rootInfo) {
-        NFA.State startState = new NFA.State("S");
-        List<NFA.State> acceptStates = new ArrayList<>();
-        List<NFA.Trans> transitions = new ArrayList<>();
-        List<NFA.Eps> epsilons = new ArrayList<>();
+        NFABuilder builder = new NFABuilder();
         Map<Position, NFA.State> positionToState = new HashMap<>();
 
+        NFA.State startState = new NFA.State("S");
+        builder.setStart(startState);
+
         if (rootInfo.nullable()) {
-            acceptStates.add(startState);
+            builder.addAcceptState(startState);
         }
 
         for (Position p : rootInfo.first()) {
             NFA.State toState = getOrCreateState(p, positionToState);
-            transitions.add(new NFA.Trans(startState, p.value(), toState));
+            builder.addTransition(startState, p.value(), toState); // Zakładam, że Position nadal jest rekordem
         }
 
         for (Map.Entry<Position, Set<Position>> entry : followSets.entrySet()) {
@@ -108,19 +110,29 @@ public class RegexToNFA {
             NFA.State currentState = getOrCreateState(currentPos, positionToState);
 
             if (rootInfo.last().contains(currentPos)) {
-                acceptStates.add(currentState);
+                builder.addAcceptState(currentState);
             }
 
             for (Position nextPos : entry.getValue()) {
                 NFA.State nextState = getOrCreateState(nextPos, positionToState);
-                transitions.add(new NFA.Trans(currentState, nextPos.value(), nextState));
+                builder.addTransition(currentState, nextPos.value(), nextState);
             }
         }
 
-        return new NFA(startState, acceptStates, transitions, epsilons);
+        return builder.build();
     }
 
     private NFA.State getOrCreateState(Position p, Map<Position, NFA.State> map) {
-        return map.computeIfAbsent(p, key -> new NFA.State("q" + key.id()));
+        return map.computeIfAbsent(p, key -> new NFA.State(getLetterName(key.id())));
+    }
+
+    private String getLetterName(int id) {
+        StringBuilder name = new StringBuilder();
+        while (id > 0) {
+            id--;
+            name.insert(0, (char) ('A' + (id % 26)));
+            id /= 26;
+        }
+        return name.toString();
     }
 }

@@ -31,7 +31,6 @@ class RegexLexerTest {
 
     @Test
     void shouldTokenizeOperators() {
-        // Uwaga: w Twoim Lexerze '+' to UNION, a nie '|'
         RegexLexer lexer = new RegexLexer("*+()");
         List<RegexToken> tokens = lexer.tokenize();
 
