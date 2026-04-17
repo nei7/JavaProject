@@ -6,7 +6,7 @@ A command-line interface (CLI) tool built in Java as a university project. Its p
 
 1. **Regex to AST:** The input string is tokenized (Lexer) and parsed (Recursive Descent Parser) into an Abstract Syntax Tree.
 2. **AST to NFA:** The AST is converted into a Non-deterministic Finite Automaton (NFA) using the **Glushkov Construction algorithm**.
-3. **NFA to Regular Grammar:** Finally, the DFA transitions are mapped to production rules to generate a Regular Grammar (Right-Linear).
+3. **NFA to Regular Grammar:** Finally, the NFA transitions are mapped to production rules to generate a Regular Grammar (Right-Linear).
 
 ## Supported Operators
 
